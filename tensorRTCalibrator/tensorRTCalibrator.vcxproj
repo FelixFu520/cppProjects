@@ -24,6 +24,7 @@
     <ProjectGuid>{1ecd7586-7934-4836-ad25-489e2e6b9d36}</ProjectGuid>
     <RootNamespace>tensorRTCalibrator</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>TensorRTCalibrator</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
