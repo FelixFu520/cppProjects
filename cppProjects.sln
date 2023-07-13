@@ -5,6 +5,8 @@ VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tensorRTCalibrator", "tensorRTCalibrator\tensorRTCalibrator.vcxproj", "{1ECD7586-7934-4836-AD25-489E2E6B9D36}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TensorRT_INT8_PTQ", "TensorRT_INT8_PTQ\TensorRT_INT8_PTQ.vcxproj", "{4038A85D-8D7D-4017-88AF-EFFC595E98CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{1ECD7586-7934-4836-AD25-489E2E6B9D36}.Release|x64.Build.0 = Release|x64
 		{1ECD7586-7934-4836-AD25-489E2E6B9D36}.Release|x86.ActiveCfg = Release|Win32
 		{1ECD7586-7934-4836-AD25-489E2E6B9D36}.Release|x86.Build.0 = Release|Win32
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Debug|x64.ActiveCfg = Debug|x64
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Debug|x64.Build.0 = Debug|x64
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Debug|x86.ActiveCfg = Debug|Win32
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Debug|x86.Build.0 = Debug|Win32
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Release|x64.ActiveCfg = Release|x64
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Release|x64.Build.0 = Release|x64
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Release|x86.ActiveCfg = Release|Win32
+		{4038A85D-8D7D-4017-88AF-EFFC595E98CC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
