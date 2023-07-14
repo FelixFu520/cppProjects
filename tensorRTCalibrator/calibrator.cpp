@@ -10,7 +10,10 @@ MyCalibrator::MyCalibrator(const std::string& calibrationDataFile, const int nCa
 #endif
     cnpy::npz_t    npzFile = cnpy::npz_load(calibrationDataFile);
     cnpy::NpyArray array = npzFile[std::string("calibrationData")];
-    pData = array.data<float>();
+    auto pDataTemp = array.data<float>();
+    pData = (float*)malloc(array.num_bytes());
+    memcpy(pData, pDataTemp, array.num_bytes());
+
     if (pData == nullptr)
     {
         std::cout << "Failed getting calibration data!" << std::endl;
@@ -37,6 +40,9 @@ MyCalibrator::~MyCalibrator() noexcept
     if (bufferD != nullptr)
     {
         cudaFree(bufferD);
+    }
+    if (pData != nullptr) {
+        free(pData);
     }
     return;
 }

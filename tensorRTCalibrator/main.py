@@ -40,12 +40,13 @@ dataPath = os.path.dirname(os.path.realpath(__file__)) + "/../Files/MNISTData/"
 trainFileList = sorted(glob(dataPath + "train/*.jpg"))
 testFileList = sorted(glob(dataPath + "test/*.jpg"))
 inferenceImage = dataPath + "8.png"
+# inferenceImage = dataPath + "5.jpg"
 
 # for FP16 mode
 bUseFP16Mode = False
 # for INT8 model
 bUseINT8Mode = True
-nCalibration = 1
+nCalibration = 100
 cacheFile = "./int8.cache"
 calibrationDataPath = dataPath + "test/"
 
@@ -73,6 +74,7 @@ class Net(t.nn.Module):
         y = self.fc2(x)
         z = F.softmax(y, dim=1)
         z = t.argmax(z, dim=1)
+        # z = t.argmax(z, dim=1).float()
         return y, z
 
 class MyData(t.utils.data.Dataset):

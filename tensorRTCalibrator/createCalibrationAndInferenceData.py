@@ -23,12 +23,13 @@ nHeight = 28
 nWidth = 28
 dataPath = "../Files/MNISTData/"
 calibrationDataPath = dataPath + "test/"
-inferenceDataFile = dataPath + "8.png"
+inferenceDataFile = dataPath + "1.jpg"
 
 inferenceData = cv2.imread(inferenceDataFile, cv2.IMREAD_GRAYSCALE).astype(np.float32)
 
 calibrationDataFileList = sorted(glob(calibrationDataPath + "*.jpg"))[:nCalibrationData]
-calibrationData = np.empty([nCalibrationData, 1, nHeight, nWidth]).astype(np.float32)
+# calibrationData = np.empty([nCalibrationData, 1, nHeight, nWidth])
+calibrationData = np.empty([nCalibrationData, 1, nHeight, nWidth], dtype=np.float32)
 for i in range(nCalibrationData):
     calibrationData[i, 0] = cv2.imread(calibrationDataFileList[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
 

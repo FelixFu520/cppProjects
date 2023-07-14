@@ -137,7 +137,7 @@ int main()
         {
             delete pCalibrator;
         }
-        /*
+        
         std::ofstream engineFile(trtFile, std::ios::binary);
         if (!engineFile)
         {
@@ -151,7 +151,7 @@ int main()
             return 1;
         }
         std::cout << "Succeeded saving .plan file!" << std::endl;
-        */
+        
     }
 
     long unsigned int                      nIO = engine->getNbIOTensors();
@@ -201,7 +201,11 @@ int main()
     cnpy::npz_t    npzFile = cnpy::npz_load(dataFile);
     cnpy::NpyArray array = npzFile[std::string("inferenceData")];
     memcpy(vBufferH[0], array.data<float>(), vTensorSize[0]);
-
+    //for (int i = 0; i < vTensorSize[0]/sizeof(float); i++) {
+    //    int r = i / 28;
+    //    int c = i % 28;
+    //    std::cout << std::to_string(r) + ","+ std::to_string(c) + " : " + std::to_string(((float*)vBufferH[0])[i]) << std::endl;
+    //}
     for (int i = 0; i < nInput; ++i)
     {
         CHECK(cudaMemcpy(vBufferD[i], vBufferH[i], vTensorSize[i], cudaMemcpyHostToDevice));
@@ -218,6 +222,10 @@ int main()
     {
         CHECK(cudaMemcpy(vBufferH[i], vBufferD[i], vTensorSize[i], cudaMemcpyDeviceToHost));
     }
+
+    //for (int i = 0; i < vTensorSize[1] / sizeof(int); i++) {
+    //    std::cout << std::to_string(i) + " : " + std::to_string(((int*)vBufferH[1])[i]) << std::endl;
+    //}
 
     for (int i = 0; i < nInput; ++i)
     {
