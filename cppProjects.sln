@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TensorRT_INT8_PTQ", "Tensor
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaMemcpy", "CudaMemcpy\testCudaMemcpy.vcxproj", "{8CC8028D-1E5D-406E-8F9B-BD21D3493AC8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TensorRTDemo", "TensorRTDemo\testTensorRT.vcxproj", "{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{8CC8028D-1E5D-406E-8F9B-BD21D3493AC8}.Release|x64.Build.0 = Release|x64
 		{8CC8028D-1E5D-406E-8F9B-BD21D3493AC8}.Release|x86.ActiveCfg = Release|Win32
 		{8CC8028D-1E5D-406E-8F9B-BD21D3493AC8}.Release|x86.Build.0 = Release|Win32
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Debug|x64.ActiveCfg = Debug|x64
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Debug|x64.Build.0 = Debug|x64
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Debug|x86.ActiveCfg = Debug|Win32
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Debug|x86.Build.0 = Debug|Win32
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Release|x64.ActiveCfg = Release|x64
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Release|x64.Build.0 = Release|x64
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Release|x86.ActiveCfg = Release|Win32
+		{68BE4EA0-5E61-466C-B6D3-BCB5555FC387}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
