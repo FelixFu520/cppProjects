@@ -10,10 +10,7 @@ import calibrator
 import slide_images
 
 os.system('chcp 65001')
-
-
-def set_seed():
-    np.random.seed(31193)
+np.random.seed(31193)
 
 
 def build_trt(onnxFile: str, trtFile: str, onnxInputShape: list, bUseFP16Mode: bool = None, bUseINT8Mode: bool = None,
@@ -36,8 +33,7 @@ def build_trt(onnxFile: str, trtFile: str, onnxInputShape: list, bUseFP16Mode: b
         with open(trtFile, 'rb') as f:
             engineString = f.read()
         runtime = trt.Runtime(logger)
-        engine = runtime.deserialize_cuda_engine(engineString)
-        return engine
+        return runtime.deserialize_cuda_engine(engineString)
     else:
         network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
         profile = builder.create_optimization_profile()
@@ -73,12 +69,69 @@ def build_trt(onnxFile: str, trtFile: str, onnxInputShape: list, bUseFP16Mode: b
 
         with open(trtFile, "wb") as f:
             f.write(engineString)
-        engine = trt.Runtime(logger).deserialize_cuda_engine(engineString)
-        return engine
+        return trt.Runtime(logger).deserialize_cuda_engine(engineString)
 
 
-def infer():
-    pass
+def infer(trt_engine: trt.ICudaEngine, batchImage: np.array, num_image: int):
+    # get io info
+    nIO = trt_engine.num_io_tensors
+    lTensorName = [trt_engine.get_tensor_name(i) for i in range(nIO)]
+    nInput = [trt_engine.get_tensor_mode(lTensorName[i]) for i in range(nIO)].count(trt.TensorIOMode.INPUT)
+
+    # get context
+    context = trt_engine.create_execution_context()
+    context.set_input_shape(lTensorName[0], onnx_input_shape[1])
+    for i in range(nIO):
+        print("[%2d]%s->" % (i, "Input " if i < nInput else "Output"), trt_engine.get_tensor_dtype(lTensorName[i]),
+              trt_engine.get_tensor_shape(lTensorName[i]), context.get_tensor_shape(lTensorName[i]), lTensorName[i])
+
+    # malloc host
+    bufferH = list()
+    bufferH.append(np.ascontiguousarray(batchImage))
+    for i in range(nInput, nIO):
+        bufferH.append(np.empty(context.get_tensor_shape(lTensorName[i]),
+                                dtype=trt.nptype(engine.get_tensor_dtype(lTensorName[i]))))
+    # malloc device
+    bufferD = []
+    for i in range(nIO):
+        bufferD.append(cudart.cudaMalloc(bufferH[i].nbytes)[1])
+
+    # copy to device
+    for i in range(nInput):
+        cudart.cudaMemcpy(bufferD[i], bufferH[i].ctypes.data, bufferH[i].nbytes,
+                          cudart.cudaMemcpyKind.cudaMemcpyHostToDevice)
+
+    # infer
+    for i in range(nIO):
+        context.set_tensor_address(lTensorName[i], int(bufferD[i]))
+    context.execute_async_v3(0)
+
+    # copy to host
+    for i in range(nInput, nIO):
+        cudart.cudaMemcpy(bufferH[i].ctypes.data, bufferD[i], bufferH[i].nbytes,
+                          cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost)
+
+    # free device memory
+    for b in bufferD:
+        cudart.cudaFree(b)
+
+    # only two output
+    confs = bufferH[1]
+    labels = bufferH[2]
+    confs_result_ = list()
+    labels_result_ = list()
+    for i in range(num_image):
+        label_ = labels[i].transpose((1, 2, 0))
+        label_ = np.where(label_ != 0, 255, 0)
+        labels_result_.append(label_.squeeze())
+
+        conf_ = confs[i].transpose((1, 2, 0))
+        conf_ *= 255
+        conf_ = conf_.astype(np.uint8)
+        conf_ = np.where(label_ == 255, conf_, 0)
+        confs_result_.append(conf_.squeeze())
+
+    return confs_result_, labels_result_
 
 
 if __name__ == '__main__':
@@ -111,61 +164,10 @@ if __name__ == '__main__':
     batch_image = np.ascontiguousarray(np.asarray(batch_images).transpose((0, 3, 1, 2))).astype(np.float32)
 
     # 3. infer
-    # get io info
-    nIO = engine.num_io_tensors
-    lTensorName = [engine.get_tensor_name(i) for i in range(nIO)]
-    nInput = [engine.get_tensor_mode(lTensorName[i]) for i in range(nIO)].count(trt.TensorIOMode.INPUT)
-
-    # get context
-    context = engine.create_execution_context()
-    context.set_input_shape(lTensorName[0], onnx_input_shape[1])
-    for i in range(nIO):
-        print("[%2d]%s->" % (i, "Input " if i < nInput else "Output"), engine.get_tensor_dtype(lTensorName[i]),
-              engine.get_tensor_shape(lTensorName[i]), context.get_tensor_shape(lTensorName[i]), lTensorName[i])
-
-    # malloc
-    bufferH = []
-    bufferH.append(np.ascontiguousarray(batch_image))
-    for i in range(nInput, nIO):
-        bufferH.append(np.empty(context.get_tensor_shape(lTensorName[i]),
-                                dtype=trt.nptype(engine.get_tensor_dtype(lTensorName[i]))))
-    bufferD = []
-    for i in range(nIO):
-        bufferD.append(cudart.cudaMalloc(bufferH[i].nbytes)[1])
-
-    # copy
-    for i in range(nInput):
-        cudart.cudaMemcpy(bufferD[i], bufferH[i].ctypes.data, bufferH[i].nbytes,
-                          cudart.cudaMemcpyKind.cudaMemcpyHostToDevice)
-
-    for i in range(nIO):
-        context.set_tensor_address(lTensorName[i], int(bufferD[i]))
-    context.execute_async_v3(0)
-
-    # copy
-    for i in range(nInput, nIO):
-        cudart.cudaMemcpy(bufferH[i].ctypes.data, bufferD[i], bufferH[i].nbytes,
-                          cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost)
-
-    confs = bufferH[1]
-    labels = bufferH[2]
-    confs_result = []
-    labels_result = []
-    for i in range(num_images):
-        label = labels[i].transpose((1, 2, 0))
-        label = np.where(label != 0, 255, 0)
-        labels_result.append(label.squeeze())
-        cv2.imwrite(f"crops/{i}_{label.shape[0]}_{label.shape[1]}_label.png", label)
-
-        conf = confs[i].transpose((1, 2, 0))
-        conf *= 255
-        conf = conf.astype(np.uint8)
-        conf = np.where(label == 255, conf, 0)
-        confs_result.append(conf.squeeze())
-        cv2.imwrite(f"crops/{i}_{conf.shape[0]}_{conf.shape[1]}_conf.png", conf)
-
-    for b in bufferD:
-        cudart.cudaFree(b)
+    confs_result, labels_result = infer(engine, batch_image, num_images)
+    for i, (conf, label) in enumerate(zip(confs_result, labels_result)):
+        cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_label.jpg", label)
+        cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_conf.jpg", conf)
 
     # charlet
     charlet_label = np.zeros(img.shape[:2], np.uint8)
