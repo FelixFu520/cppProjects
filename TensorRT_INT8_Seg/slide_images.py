@@ -48,7 +48,14 @@ def sliding_window1(image: np.array, window: tuple, step: float, back: bool = Tr
                         y_tmp = image_h - window_h
                     else:
                         y_tmp = y
-                    windows_result.append([x_tmp, y_tmp, np.clip(x_tmp + window_w, 0, image_w), np.clip(y_tmp + window_h, 0, image_h)])
+                    windows_result.append(
+                        [
+                            np.clip(x_tmp, 0, image_w),
+                            np.clip(y_tmp, 0, image_h),
+                            np.clip(x_tmp + window_w, 0, image_w),
+                            np.clip(y_tmp + window_h, 0, image_h)
+                        ]
+                    )
 
                 else:
                     windows_result.append([x, y, np.clip(x + window_w, 0, image_w), np.clip(y + window_h, 0, image_h)])
