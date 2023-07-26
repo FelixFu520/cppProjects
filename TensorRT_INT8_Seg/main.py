@@ -14,7 +14,8 @@ np.random.seed(31193)
 
 
 def build_trt(onnxFile: str, trtFile: str, onnxInputShape: list, bUseFP16Mode: bool = None, bUseINT8Mode: bool = None,
-              calibrationDataPath: str = None, nCalibration: int = None):
+              calibrationDataPath: str = None, nCalibration: int = None,
+              show_log: bool = False, save_image: bool = False):
     """
     构建engine
     :param onnxFile:
@@ -42,7 +43,9 @@ def build_trt(onnxFile: str, trtFile: str, onnxInputShape: list, bUseFP16Mode: b
             config.set_flag(trt.BuilderFlag.FP16)
         if bUseINT8Mode:
             config.set_flag(trt.BuilderFlag.INT8)
-            config.int8_calibrator = calibrator.MyCalibrator(calibrationDataPath, nCalibration, onnxInputShape, trtFile)
+            config.int8_calibrator = calibrator.MyCalibrator(calibrationDataPath,
+                                                             nCalibration, onnxInputShape[1], trtFile,
+                                                             show_log=show_log, save_image=save_image)
 
         parser = trt.OnnxParser(network, logger)
         if not os.path.exists(onnxFile):
@@ -134,15 +137,71 @@ def infer(trt_engine: trt.ICudaEngine, batchImage: np.array, num_image: int):
     return confs_result_, labels_result_
 
 
-if __name__ == '__main__':
-    # 1. build trt
-    onnx_file = "./test.onnx"
-    trt_file = "./test.trt"
-    onnx_input_shape = [(64, 3, 256, 256), (64, 3, 256, 256), (64, 3, 256, 256)]
-    engine = build_trt(onnx_file, trt_file, onnx_input_shape, bUseFP16Mode=True)
+def merge_image(src: str, dst: str):
+    assert os.path.exists(src), "not exists"
+    assert os.path.exists(dst), "not exists"
+    assert os.path.isdir(dst), "not dir"
+    if len(os.listdir(dst)) > 0:
+        return
 
+    # 获得所有通道的样本列表
+    channels_name = [p for p in os.listdir(src) if os.path.isdir(os.path.join(src, p)) and not p.startswith("mix")]
+    assert len(channels_name) > 0, "input errror"
+    images_name = list()
+    for channel_name in channels_name:
+        images = [p.replace(channel_name, '========') for p in
+                  os.listdir(os.path.join(src, channel_name)) if p.endswith("bmp")]
+        images_name.append(images)
+
+    # 判断每个通道中图片名称是否是对应的
+    assert all([set(images_name[0]) == set(i) for i in images_name]), "input error"
+
+    # 合并图片路径
+    images_path = list()
+    for image in images_name[0]:
+        one_image = list()
+        for channel_name in channels_name:
+            one_image.append(os.path.join(src, channel_name, image.replace("========", channel_name)))
+        images_path.append(one_image)
+
+    # 合并图片
+    images = list()
+    for image_path in images_path:
+        image = list()
+        for img_path in image_path:
+            img = cv2.imread(img_path, -1)
+            image.append(img)
+        image = np.asarray(image).transpose((1, 2, 0))
+        images.append(image)
+
+    # 存储图片
+    for image_path, image in zip(images_path, images):
+        img_p = os.path.join(dst, os.path.basename(image_path[0]))
+        cv2.imwrite(img_p, image)
+
+
+if __name__ == '__main__':
+    show_log = False
+    save_img = False
+
+    # 1. build trt
+    onnx_file = "./calibrator.onnx"
+    trt_file = "./calibrator_fp16.trt"
+    trt_file_int8 = "./calibrator_int8.trt"
+    onnx_input_shape = [(32, 3, 256, 256), (32, 3, 256, 256), (32, 3, 256, 256)]
+    bUseFP16Mode = False
+    calibrationDataPath = "D:/Work/cppProjects/Files/calibrator_train_data/train_pos/"
+    calibrationDataPath_dst = "D:/Work/cppProjects/Files/calibrator_data/"
+    nCalibration = 1000
+
+    if bUseFP16Mode:
+        engine = build_trt(onnx_file, trt_file, onnx_input_shape, bUseFP16Mode=True)
+    else:
+        merge_image(calibrationDataPath, calibrationDataPath_dst)
+        engine = build_trt(onnx_file, trt_file_int8, onnx_input_shape, bUseFP16Mode=False, bUseINT8Mode=True,
+                           calibrationDataPath=calibrationDataPath_dst, nCalibration=nCalibration)
     # 2. prepare image
-    image_path = "2.bmp"
+    image_path = "4.bmp"
     # get coords
     img = cv2.imread(image_path, -1)
     crop_size = onnx_input_shape[1][2:]
@@ -155,7 +214,8 @@ if __name__ == '__main__':
     for i, img_ in enumerate(slide_images.crop_image(img, windows1)):
         batch_images.append(img_)
         img_tmp = img_
-        cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_img.jpg", img_)
+        if save_img:
+            cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_img.jpg", img_)
     while True:
         if len(batch_images) < onnx_input_shape[1][0]:
             batch_images.append(img_tmp)
@@ -165,9 +225,10 @@ if __name__ == '__main__':
 
     # 3. infer
     confs_result, labels_result = infer(engine, batch_image, num_images)
-    for i, (conf, label) in enumerate(zip(confs_result, labels_result)):
-        cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_label.jpg", label)
-        cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_conf.jpg", conf)
+    if save_img:
+        for i, (conf, label) in enumerate(zip(confs_result, labels_result)):
+            cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_label.jpg", label)
+            cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_conf.jpg", conf)
 
     # charlet
     charlet_label = np.zeros(img.shape[:2], np.uint8)
@@ -182,7 +243,7 @@ if __name__ == '__main__':
         view_of_charlet_conf = charlet_conf[y1:y2, x1:x2]
         conf = np.where(conf > view_of_charlet_conf, conf, view_of_charlet_conf)
         charlet_conf[y1:y2, x1:x2] = conf
-    cv2.imwrite(f"2_label.png", charlet_label)
-    cv2.imwrite(f"2_conf.png", charlet_conf)
+    cv2.imwrite(f"{image_path[:-4]}_label_fp16-{bUseFP16Mode}.png", charlet_label)
+    cv2.imwrite(f"{image_path[:-4]}_conf_fp16-{bUseFP16Mode}.png", charlet_conf)
 
     print("Succeeded running model in TensorRT!")
