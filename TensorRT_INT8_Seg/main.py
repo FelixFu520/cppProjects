@@ -126,13 +126,13 @@ def infer(trt_engine: trt.ICudaEngine, batchImage: np.array, num_image: int):
     for i in range(num_image):
         label_ = labels[i].transpose((1, 2, 0))
         label_ = np.where(label_ != 0, 255, 0)
-        labels_result_.append(label_.squeeze())
+        labels_result_.append(label_.squeeze().astype(np.uint8))
 
         conf_ = confs[i].transpose((1, 2, 0))
         conf_ *= 255
         conf_ = conf_.astype(np.uint8)
         conf_ = np.where(label_ == 255, conf_, 0)
-        confs_result_.append(conf_.squeeze())
+        confs_result_.append(conf_.squeeze().astype(np.uint8))
 
     return confs_result_, labels_result_
 
@@ -182,7 +182,7 @@ def merge_image(src: str, dst: str):
 
 if __name__ == '__main__':
     show_log = False
-    save_img = False
+    save_img = True
 
     # 1. build trt
     onnx_file = "./calibrator.onnx"
@@ -201,7 +201,7 @@ if __name__ == '__main__':
         engine = build_trt(onnx_file, trt_file_int8, onnx_input_shape, bUseFP16Mode=False, bUseINT8Mode=True,
                            calibrationDataPath=calibrationDataPath_dst, nCalibration=nCalibration)
     # 2. prepare image
-    image_path = "4.bmp"
+    image_path = "1.bmp"
     # get coords
     img = cv2.imread(image_path, -1)
     crop_size = onnx_input_shape[1][2:]
@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
     # charlet
     charlet_label = np.zeros(img.shape[:2], np.uint8)
-    charlet_conf = np.empty(img.shape[:2], np.uint8)
+    charlet_conf = np.zeros(img.shape[:2], np.uint8)
     for coord, conf, label in zip(windows1, confs_result, labels_result):
         x1, y1, x2, y2 = coord[0], coord[1], coord[2], coord[3]
 
