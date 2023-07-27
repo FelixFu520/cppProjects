@@ -1,6 +1,5 @@
 import os
-from datetime import datetime as dt
-from glob import glob
+import time
 import cv2
 import numpy as np
 import tensorrt as trt
@@ -224,7 +223,13 @@ if __name__ == '__main__':
     batch_image = np.ascontiguousarray(np.asarray(batch_images).transpose((0, 3, 1, 2))).astype(np.float32)
 
     # 3. infer
+    start_time = time.perf_counter()
     confs_result, labels_result = infer(engine, batch_image, num_images)
+    end_time = time.perf_counter()
+    # 计算执行时间，以毫秒为单位
+    elapsed_time_ms = (end_time - start_time) * 1000
+    print(f"代码执行时间：{elapsed_time_ms:.3f} 毫秒")
+
     if save_img:
         for i, (conf, label) in enumerate(zip(confs_result, labels_result)):
             cv2.imwrite(f"crops/{i}_{windows1[i][0]}_{windows1[i][1]}_{windows1[i][2]}_{windows1[i][3]}_r_label.jpg", label)
