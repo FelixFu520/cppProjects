@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import cv2
-from glob import glob
+import shutil
 import mmengine
 import mmcv
 
@@ -50,7 +50,7 @@ class createCalibratorData(object):
 
     def _save_image(self) -> None:
         if os.path.exists(self.dst_path):
-            os.remove(self.dst_path)
+            shutil.rmtree(self.dst_path)
         os.makedirs(self.dst_path, exist_ok=True)
         for img_path, img in zip(self.calibratorDataPath, self.calibratorData):
             dst_path = os.path.join(self.dst_path, img_path)
@@ -59,5 +59,5 @@ class createCalibratorData(object):
 
 if __name__ == '__main__':
     datasetJson = "D:\\Downloads\\train\\datasets.json"
-    createCalibratorData(datasetJson, color_type='grayscale', percent=0.1)()
+    createCalibratorData(datasetJson, color_type='grayscale', percent=1)()
 
